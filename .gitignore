@@ -1,0 +1,15 @@
+.clangd
+.depend
+
+.vscode
+.ccls
+compile_commands.json
+
+*.a
+*.so
+*.o
+
+results
+
+regression.diffs
+regression.out
