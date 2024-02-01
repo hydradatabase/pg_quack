@@ -26,26 +26,43 @@ DUCKDB_DIR = third_party/duckdb
 
 override PG_CFLAGS += -I$(CURDIR)/include -I$(CURDIR)/$(DUCKDB_DIR)
 
-SHLIB_LINK += -Wl,-rpath=$(PG_LIB)/ -L$(PG_LIB) -lduckdb
+SHLIB_LINK += -Wl,-rpath,$(DESTDIR)$(datadir)/$(datamoduledir)/ -L$(PG_LIB) -lduckdb -L$(CURDIR)/$(DUCKDB_DIR)
 
 COMPILE.c.bc = $(CLANG) -Wno-ignored-attributes -Wno-register $(BITCODE_CXXFLAGS) $(PG_CFLAGS) -I$(INCLUDEDIR_SERVER) -emit-llvm -c
 
 %.bc : %.c
 	$(COMPILE.c.bc) $(SHLIB_LINK) $(PG_CFLAGS) -I$(INCLUDE_SERVER) -o $@ $<
 
-# Platform detection.
-ifeq ($(OS),Windows_NT)
-	# noop for now
-else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Darwin)
-	endif
-	ifeq ($(UNAME_S),Linux)
-	endif
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+  DUCKDB_LIB = libduckdb.dylib
+  DUCKDB_ZIP = libduckdb-osx-universal.zip
+endif
+ifeq ($(UNAME_S),Linux)
+  DUCKDB_LIB = libduckdb.so
+  UNAME_M := $(shell uname -m)
+  ifeq ($(UNAME_M),aarch64)
+    DUCKDB_ZIP = libduckdb-linux-aarch64.zip
+  endif
+  ifeq ($(UNAME_M),x86_64)
+    DUCKDB_ZIP = libduckdb-linux-amd64.zip
+  endif
 endif
 
-REGRESS = 
+DUCKDB_VERSION ?= v0.9.2
+DUCKDB_BASE_URL ?= https://github.com/duckdb/duckdb/releases/download/$(DUCKDB_VERSION)
+DATA_built = $(DUCKDB_DIR)/$(DUCKDB_LIB)
+REGRESS =
 
 include $(PGXS)
 
 all: quack.so
+
+$(DUCKDB_DIR)/$(DUCKDB_ZIP):
+	curl -sL $(DUCKDB_BASE_URL)/$(DUCKDB_ZIP) -o $(DUCKDB_DIR)/$(DUCKDB_ZIP)
+
+# this really likes to run everytime, not sure why
+$(DUCKDB_DIR)/$(DUCKDB_LIB): $(DUCKDB_DIR)/$(DUCKDB_ZIP)
+	cd $(DUCKDB_DIR) && unzip -o -q $(DUCKDB_ZIP) $(DUCKDB_LIB)
+
+quack.so: $(DUCKDB_DIR)/$(DUCKDB_LIB)

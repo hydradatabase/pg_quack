@@ -8,8 +8,12 @@ compile_commands.json
 *.a
 *.so
 *.o
+*.bc
+*.dylib
 
 results
 
 regression.diffs
 regression.out
+
+third_party/duckdb/*.zip
