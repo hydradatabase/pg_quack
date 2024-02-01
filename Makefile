@@ -18,14 +18,20 @@ PG_CONFIG = pg_config
 endif
 
 PGXS := $(shell $(PG_CONFIG) --pgxs)
+PG_LIB := $(shell $(PG_CONFIG) --pkglibdir)
 INCLUDEDIR := ${shell $(PG_CONFIG) --includedir}
 INCLUDEDIR_SERVER := ${shell $(PG_CONFIG) --includedir-server}
 
 DUCKDB_DIR = third_party/duckdb
 
-override PG_CFLAGS += -I$(CURDIR)/include -I$(DUCKDB_DIR)
+override PG_CFLAGS += -I$(CURDIR)/include -I$(CURDIR)/$(DUCKDB_DIR)
 
-SHLIB_LINK += -L$(DUCKDB_DIR) -lduckdb
+SHLIB_LINK += -Wl,-rpath=$(PG_LIB)/ -L$(PG_LIB) -lduckdb
+
+COMPILE.c.bc = $(CLANG) -Wno-ignored-attributes -Wno-register $(BITCODE_CXXFLAGS) $(PG_CFLAGS) -I$(INCLUDEDIR_SERVER) -emit-llvm -c
+
+%.bc : %.c
+	$(COMPILE.c.bc) $(SHLIB_LINK) $(PG_CFLAGS) -I$(INCLUDE_SERVER) -o $@ $<
 
 # Platform detection.
 ifeq ($(OS),Windows_NT)
