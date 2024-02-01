@@ -47,7 +47,7 @@ quack_check_data_directory(void)
   {
     if(errno == ENOENT)
     {
-      elog(ERROR, "Directory `%s` doesn't exists.", quack_data_dir);
+      elog(ERROR, "Directory `%s` doesn't exist.", quack_data_dir);
     } 
     else if(errno == EACCES)
     {
