@@ -8,10 +8,10 @@ pg_quack is PostgreSQL with Embedded DuckDB :duck:
 1. Create quack directory and set permissions so PostgreSQL process can write to it. Directory can be changed
    with `quack.data_dir` configuration parameter
 ```
-postgres=# show quack.data_dir;
- quack.data_dir
-----------------
- /opt/quack/
+postgres=# show quack.data_dir ;
+           quack.data_dir           
+------------------------------------
+ /opt/database/postgres/data/quack/
 (1 row)
 
 postgres=#

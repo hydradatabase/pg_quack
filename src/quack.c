@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "postgres.h"
 
@@ -16,56 +17,74 @@ PG_MODULE_MAGIC;
 
 char * quack_data_dir = NULL;
 
-static void quack_check_data_directory(void);
+static bool quack_check_data_directory(const char * dataDirectory);
+
+static void
+quack_data_directory_assign_hook(const char *newval, void *extra)
+{
+  if(!quack_check_data_directory(newval))
+  {
+    if (mkdir(newval, S_IRWXU | S_IRWXG | S_IRWXO) == -1)
+    {
+      int error = errno;
+      elog(ERROR, "Creating quack.data_dir failed with reason `%s`\n", strerror(error));
+    }
+    elog(INFO, "Created %s as `quack.data_dir`", newval);
+  };
+}
 
 void
 _PG_init(void)
 {
+  StringInfo quack_deafault_data_dir = makeStringInfo();
+  appendStringInfo(quack_deafault_data_dir, "%s/quack/", DataDir);
+
   DefineCustomStringVariable("quack.data_dir",
                              gettext_noop("Quack storage data directory."),
                              NULL,
                              &quack_data_dir,
-                             "/opt/quack/",
-                             PGC_BACKEND, GUC_IS_NAME,
+                             quack_deafault_data_dir->data,
+                             PGC_USERSET,
+                             GUC_IS_NAME,
                              NULL,
-                             NULL,
+                             quack_data_directory_assign_hook,
                              NULL);
-
-
-  quack_check_data_directory();
 
   quack_init_tableam();
   quack_init_hooks();
 }
 
-void
-quack_check_data_directory(void)
+bool
+quack_check_data_directory(const char * dataDirectory)
 {
   struct stat info;
 
-  if(lstat(quack_data_dir, &info) != 0)
+  if(lstat(dataDirectory, &info) != 0)
   {
     if(errno == ENOENT)
     {
-      elog(ERROR, "Directory `%s` doesn't exist.", quack_data_dir);
+      elog(WARNING, "Directory `%s` doesn't exists.", dataDirectory);
+      return false;
     } 
     else if(errno == EACCES)
     {
-      elog(ERROR, "Can't access `%s` directory.", quack_data_dir);
+      elog(ERROR, "Can't access `%s` directory.", dataDirectory);
     }
     else
     {
-      elog(ERROR, "Other error when reading `%s`.", quack_data_dir);
+      elog(ERROR, "Other error when reading `%s`.", dataDirectory);
     }
   }
 
   if(!S_ISDIR(info.st_mode))
   {
-    elog(WARNING, "`%s` is not directory.", quack_data_dir);
+    elog(WARNING, "`%s` is not directory.", dataDirectory);
   }
 
-  if (access(quack_data_dir, R_OK | W_OK))
+  if (access(dataDirectory, R_OK | W_OK))
   {
-    elog(ERROR, "Directory `%s` permission problem.", quack_data_dir);
+    elog(ERROR, "Directory `%s` permission problem.", dataDirectory);
   }
+
+  return true;
 }
