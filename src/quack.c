@@ -36,14 +36,14 @@ quack_data_directory_assign_hook(const char *newval, void *extra)
 void
 _PG_init(void)
 {
-  StringInfo quack_deafault_data_dir = makeStringInfo();
-  appendStringInfo(quack_deafault_data_dir, "%s/quack/", DataDir);
+  StringInfo quack_default_data_dir = makeStringInfo();
+  appendStringInfo(quack_default_data_dir, "%s/quack/", DataDir);
 
   DefineCustomStringVariable("quack.data_dir",
                              gettext_noop("Quack storage data directory."),
                              NULL,
                              &quack_data_dir,
-                             quack_deafault_data_dir->data,
+                             quack_default_data_dir->data,
                              PGC_USERSET,
                              GUC_IS_NAME,
                              NULL,
@@ -65,7 +65,7 @@ quack_check_data_directory(const char * dataDirectory)
     {
       elog(WARNING, "Directory `%s` doesn't exists.", dataDirectory);
       return false;
-    } 
+    }
     else if(errno == EACCES)
     {
       elog(ERROR, "Can't access `%s` directory.", dataDirectory);
