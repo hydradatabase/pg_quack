@@ -32,6 +32,7 @@ CREATE TABLE quack_test (...) USING quack;
 
 ## Limitations
 
+* PG 14 and PG 15 only (PG 16 is not yet supported)
 * Only COPY, INSERT, and SELECT are supported.
 * Only single connection can execute INSERT and SELECT against quack table
 * Limited support for only basic data types
