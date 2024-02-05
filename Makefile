@@ -26,7 +26,7 @@ DUCKDB_DIR = third_party/duckdb
 
 override PG_CFLAGS += -I$(CURDIR)/include -I$(CURDIR)/$(DUCKDB_DIR)
 
-SHLIB_LINK += -Wl,-rpath,$(DESTDIR)$(datadir)/$(datamoduledir)/ -L$(PG_LIB) -lduckdb -L$(CURDIR)/$(DUCKDB_DIR)
+SHLIB_LINK += -Wl,-rpath,$(PG_LIB)/ -L$(PG_LIB) -lduckdb -L$(CURDIR)/$(DUCKDB_DIR)
 
 COMPILE.c.bc = $(CLANG) -Wno-ignored-attributes -Wno-register $(BITCODE_CXXFLAGS) $(PG_CFLAGS) -I$(INCLUDEDIR_SERVER) -emit-llvm -c
 
@@ -51,7 +51,6 @@ endif
 
 DUCKDB_VERSION ?= v0.9.2
 DUCKDB_BASE_URL ?= https://github.com/duckdb/duckdb/releases/download/$(DUCKDB_VERSION)
-DATA_built = $(DUCKDB_DIR)/$(DUCKDB_LIB)
 REGRESS =
 
 include $(PGXS)
@@ -65,4 +64,10 @@ $(DUCKDB_DIR)/$(DUCKDB_ZIP):
 $(DUCKDB_DIR)/$(DUCKDB_LIB): $(DUCKDB_DIR)/$(DUCKDB_ZIP)
 	cd $(DUCKDB_DIR) && unzip -o -q $(DUCKDB_ZIP) $(DUCKDB_LIB)
 
+.PHONY: install_duckdb
+install_duckdb:
+	$(install_bin) -m 755 $(DUCKDB_DIR)/$(DUCKDB_LIB) $(DESTDIR)$(PG_LIB)
+
 quack.so: $(DUCKDB_DIR)/$(DUCKDB_LIB)
+
+install: install_duckdb
